@@ -1,0 +1,50 @@
+#VRML_SIM R2023b utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/floors/protos/CircleArena.proto"
+EXTERNPROTO "../protos/TT02_2023b.proto"
+
+WorldInfo {
+}
+
+Viewpoint {
+  orientation -0.33185733874619844 -0.09874274160469809 0.9381474178937331 3.686018050088086
+  position 1.700313773507203 1.0549607538959629 1.4846240848267684
+  follow "TT02_jaune"
+}
+
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+CircleArena {
+}
+
+# Sol physique
+Solid {
+  translation 0 0 0
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.3 0.3 0.3
+      }
+      geometry Plane {
+        size 10 10
+      }
+    }
+  ]
+  name "sol_physique"
+  boundingObject Plane {
+    size 10 10
+  }
+  physics Physics { }
+}
+
+# Voiture posée au sol
+TT02_2023b {
+  translation 0 0 0
+  name "TT02_jaune"
+  controller "<extern>"
+  color 0.69 0.7 0.2
+}
