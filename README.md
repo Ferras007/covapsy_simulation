@@ -99,17 +99,7 @@ Avant toute compilation, il est nécessaire d’initialiser `rosdep` :
 ```bash
 sudo rosdep init
 rosdep update
-
-##  Webots
-
-Webots R2023b ou plus récent
-
-Installer Webots en suivant la documentation officielle :
-👉 https://cyberbotics.com/doc/guide/installation-procedure
-
-Vérifier l'installation :
-```bash
-webots --version
+---
 
 
 
