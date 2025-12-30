@@ -92,14 +92,6 @@ sudo apt install -y \
   git
 ---
 
-## 🔧 Initialisation de rosdep (une seule fois)
-
-Avant toute compilation, il est nécessaire d’initialiser `rosdep` :
-
-```bash
-sudo rosdep init
-rosdep update
----
 
 
 
