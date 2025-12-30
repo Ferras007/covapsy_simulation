@@ -1,7 +1,7 @@
 # COVAPSy Simulation Environment — Sorbonne Université 2025
 
-This repository contains the simulation component of the **COVAPSy** course (Sorbonne Université, 2025).
-It provides a **Webots + ROS 2** simulation environment to build, test and visualize autonomous vehicle control.
+Ce dépôt contient l’environnement de simulation du cours COVAPSy (Conception et Validation de Systèmes Cyber-Physiques), proposé à Sorbonne Université en 2025.
+Il fournit une plateforme complète basée sur Webots et ROS 2, permettant de concevoir, tester et visualiser des algorithmes de navigation autonome pour un véhicule de type voiture.
 
 ## Repository structure
 
