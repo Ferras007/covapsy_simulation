@@ -137,7 +137,21 @@ colcon build
 # Sourcer l'environnement
 source install/setup.bash
 ```
+##  Lancer le simulateur
 
+Ouvrez un terminal et exécutez :
+```bash
+source /opt/ros/jazzy/setup.bash
+source ~/covapsy_ws/install/setup.bash
+
+ros2 launch webot_simulation simulation.launch.py
+```
+## Visualisation:
+### Caméra RGB (RQT):
+Pour voir le flux vidéo :
+```bash
+ros2 run rqt_image_view rqt_image_view
+```
 
 
 
