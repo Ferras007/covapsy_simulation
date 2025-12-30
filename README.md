@@ -121,7 +121,7 @@ mkdir -p ~/covapsy_ws/src
 
 # Accéder au dossier et cloner le dépôt
 cd ~/covapsy_ws/src
-git clone [https://github.com/Ferras007/covapsy_simulation.git](https://github.com/Ferras007/covapsy_simulation.git)
+git clone https://github.com/Ferras007/covapsy_simulation.git
 ```
 ### 4. Installation des dépendances du projet
 ```bash
@@ -137,6 +137,8 @@ colcon build
 # Sourcer l'environnement
 source install/setup.bash
 ```
+⚠️ Le sourcing (`source install/setup.bash`) doit être refait dans chaque nouveau terminal.
+
 ##  Lancer le simulateur
 
 Ouvrez un terminal et exécutez :
