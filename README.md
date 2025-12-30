@@ -89,12 +89,12 @@ sudo apt install -y \
   python3-colcon-common-extensions \
   python3-rosdep \
   python3-vcstool \
-  git 
+  git
+```
 ---
 
----
 
-## ⚙️ Installation
+##  Installation
 
 ### 1. Initialisation de rosdep
 À faire une seule fois avant la compilation :
@@ -102,3 +102,38 @@ sudo apt install -y \
 ```bash
 sudo rosdep init
 rosdep update
+```
+### 2. Installer les dépendances ROS 2 supplémentaires
+Assurez-vous d'être sous ROS 2 Jazzy.
+```bash
+sudo apt install -y \
+  ros-jazzy-slam-toolbox \
+  ros-jazzy-nav2-bringup \
+  ros-jazzy-navigation2 \
+  ros-jazzy-rviz2 \
+  ros-jazzy-rqt-image-view \
+  ros-jazzy-tf2-tools
+```
+### 3. Création du workspace et clonage
+```bash
+# Création du dossier src
+mkdir -p ~/covapsy_ws/src
+
+# Accéder au dossier et cloner le dépôt
+cd ~/covapsy_ws/src
+git clone [https://github.com/Ferras007/covapsy_simulation.git](https://github.com/Ferras007/covapsy_simulation.git)
+```
+### 4. Installation des dépendances du projet
+cd ~/covapsy_ws
+rosdep install --from-paths src --ignore-src -r -y
+
+### 5.Compilation
+cd ~/covapsy_ws
+colcon build
+
+# Sourcer l'environnement
+source install/setup.bash
+
+
+
+
