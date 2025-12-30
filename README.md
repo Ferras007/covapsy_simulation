@@ -124,15 +124,19 @@ cd ~/covapsy_ws/src
 git clone [https://github.com/Ferras007/covapsy_simulation.git](https://github.com/Ferras007/covapsy_simulation.git)
 ```
 ### 4. Installation des dépendances du projet
+```bash
 cd ~/covapsy_ws
 rosdep install --from-paths src --ignore-src -r -y
+```
 
 ### 5.Compilation
+```bash
 cd ~/covapsy_ws
 colcon build
 
 # Sourcer l'environnement
 source install/setup.bash
+```
 
 
 
