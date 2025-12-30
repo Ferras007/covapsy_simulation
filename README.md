@@ -70,5 +70,46 @@ Cette caméra permet de travailler sur :
 
 ---
 
+##  Prérequis système
+
+###  Système d’exploitation
+- **Ubuntu 24.04 LTS (recommandé)**
+
+###  ROS 2
+- **ROS 2 Jazzy **
+
+Installation officielle :  
+https://docs.ros.org/en/jazzy/Installation.html
+
+Installer les outils nécessaires :
+
+```bash
+sudo apt update
+sudo apt install -y \
+  python3-colcon-common-extensions \
+  python3-rosdep \
+  python3-vcstool \
+  git
+---
+
+## 🔧 Initialisation de rosdep (une seule fois)
+
+Avant toute compilation, il est nécessaire d’initialiser `rosdep` :
+
+```bash
+sudo rosdep init
+rosdep update
+
+##  Webots
+
+Webots R2023b ou plus récent
+
+Installer Webots en suivant la documentation officielle :
+👉 https://cyberbotics.com/doc/guide/installation-procedure
+
+Vérifier l'installation :
+```bash
+webots --version
+
 
 
