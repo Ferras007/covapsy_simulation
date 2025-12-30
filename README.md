@@ -81,7 +81,7 @@ Cette caméra permet de travailler sur :
 Installation officielle :  
 https://docs.ros.org/en/jazzy/Installation.html
 
-Installer les outils nécessaires :
+## Installer les outils nécessaires :
 
 ```bash
 sudo apt update
@@ -89,9 +89,16 @@ sudo apt install -y \
   python3-colcon-common-extensions \
   python3-rosdep \
   python3-vcstool \
-  git
+  git 
 ---
 
+---
 
+## ⚙️ Installation
 
+### 1. Initialisation de rosdep
+À faire une seule fois avant la compilation :
 
+```bash
+sudo rosdep init
+rosdep update
