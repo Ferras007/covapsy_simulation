@@ -1,234 +1,243 @@
 #!/usr/bin/env python3
-import math
+# Auteur: Ferras NAIMI (M2 ISI)
+#
+# Navigation autonome basée sur la fusion caméra depth / LiDAR.
+# La caméra est utilisée pour l’anticipation locale,
+# le LiDAR sert principalement à la sécurité et à la robustesse.
+
 import rclpy
 from rclpy.node import Node
 
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, LaserScan
+from ackermann_msgs.msg import AckermannDrive
 from cv_bridge import CvBridge
-import cv2
+
 import numpy as np
-
-# If you use Ackermann:
-from ackermann_msgs.msg import AckermannDriveStamped
+import math
 
 
-class VisionLaneFollower(Node):
+class AutonomousNavigation(Node):
+
     def __init__(self):
-        super().__init__('vision_lane_follower')
+        super().__init__('autonomous_navigation')
 
-        # -------- Parameters --------
-        self.declare_parameter('image_topic', '/TT02_jaune/rb5_rgb/image_color')
-        self.declare_parameter('cmd_topic', '/cmd_ackermann')
+        # ---------------- PARAMÈTRES CAMÉRA ----------------
+        # Distance seuil en dessous de laquelle un obstacle est considéré "devant"
+        self.depth_threshold = 1.2
 
-        # ROI (bottom part of image)
-        self.declare_parameter('roi_y_start_ratio', 0.55)   # start of ROI (0..1)
-        self.declare_parameter('roi_y_end_ratio', 1.00)     # end of ROI (0..1)
+        # Gain utilisé pour anticiper les variations gauche/droite
+        self.k_side = 0.18
 
-        # HSV thresholds (tune if needed)
-        # You can follow ONE color (e.g. green) or combine red+green.
-        self.declare_parameter('use_two_lines', True)  # if you have red+green corridor
-        # Green
-        self.declare_parameter('green_hsv_low',  [35, 60, 40])
-        self.declare_parameter('green_hsv_high', [85, 255, 255])
-        # Red (two ranges in HSV)
-        self.declare_parameter('red1_hsv_low',   [0, 70, 40])
-        self.declare_parameter('red1_hsv_high',  [10, 255, 255])
-        self.declare_parameter('red2_hsv_low',   [170, 70, 40])
-        self.declare_parameter('red2_hsv_high',  [180, 255, 255])
+        # ---------------- PARAMÈTRES DE DIRECTION ----------------
+        # Braquage utilisé quand une décision franche est nécessaire
+        self.steering_gain = 0.40
 
-        # Control gains
-        self.declare_parameter('kp', 0.9)
-        self.declare_parameter('kd', 0.10)
-        self.declare_parameter('ki', 0.0)
-        self.declare_parameter('max_steer', 0.35)     # rad
-        self.declare_parameter('base_speed', 2.5)     # m/s (sim)
-        self.declare_parameter('min_speed',  0.8)
-        self.declare_parameter('slowdown_gain', 2.0)  # slow more when turning
+        # Limite physique du braquage (liée au modèle Ackermann)
+        self.max_steer = 0.45
 
-        # Debug
-        self.declare_parameter('debug_view', True)
+        # Lissage du braquage pour éviter les oscillations
+        self.steer_smooth = 0.7
 
-        # -------- Internal state --------
+        # Décroissance du biais de direction pour éviter les à-coups
+        self.bias_decay = 0.96
+
+        # ---------------- PARAMÈTRES LiDAR (SÉCURITÉ) ----------------
+        # Distance minimale devant le véhicule avant arrêt
+        self.lidar_stop_dist = 0.35
+
+        # Nombre de mesures consécutives requises avant un arrêt complet
+        self.lidar_stop_count_req = 3
+
+        # ---------------- PARAMÈTRES DE VITESSE ----------------
+        self.max_speed = 0.30
+        self.turn_slow_factor = 0.7
+
+        # ---------------- MODE VIRAGE SERRÉ ----------------
+        # Mode spécifique activé lorsque la caméra détecte une fermeture rapide
+        self.in_sharp_turn = False
+        self.sharp_turn_dir = 0.0
+
+        # Seuils d’entrée/sortie du mode virage serré (hystérésis)
+        self.sharp_turn_enter_dist = 0.7
+        self.sharp_turn_exit_dist = 1.6
+
+        # ---------------- ÉTATS CAPTEURS ----------------
+        self.depth_left = None
+        self.depth_center = None
+        self.depth_right = None
+
+        self.lidar_front = float('inf')
+        self.lidar_stop_counter = 0
+
+        # Mémoire du braquage précédent pour le lissage
+        self.prev_steering = 0.0
+
+        # Biais temporaire conservé lorsque la caméra hésite
+        self.turn_bias = 0.0
+
+        # ---------------- ROS ----------------
         self.bridge = CvBridge()
-        self.prev_err = 0.0
-        self.err_i = 0.0
-        self.prev_time = self.get_clock().now()
 
-        self.image_topic = self.get_parameter('image_topic').value
-        self.cmd_topic = self.get_parameter('cmd_topic').value
+        # Abonnement caméra depth
+        self.create_subscription(
+            Image,
+            '/TT02_jaune/rb5_depth/image',
+            self.depth_callback,
+            10
+        )
 
-        self.sub = self.create_subscription(Image, self.image_topic, self.on_image, 10)
-        self.pub = self.create_publisher(AckermannDriveStamped, self.cmd_topic, 10)
+        # Abonnement LiDAR
+        self.create_subscription(
+            LaserScan,
+            '/TT02_jaune/RpLidarA2',
+            self.lidar_callback,
+            10
+        )
 
-        self.get_logger().info(f"Listening image: {self.image_topic}")
-        self.get_logger().info(f"Publishing cmd:  {self.cmd_topic}")
+        # Publication des commandes Ackermann
+        self.cmd_pub = self.create_publisher(
+            AckermannDrive,
+            '/cmd_ackermann',
+            10
+        )
 
-    def _mask_color(self, hsv, low, high):
-        low = np.array(low, dtype=np.uint8)
-        high = np.array(high, dtype=np.uint8)
-        return cv2.inRange(hsv, low, high)
+        self.get_logger().info("vision_lane_follower — navigation active")
 
-    def _largest_blob_center(self, mask):
-        # Morphology to clean noise
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    # =====================================================
+    # CALLBACK LiDAR
+    # Extraction de la distance minimale dans un secteur frontal
+    # =====================================================
+    def lidar_callback(self, scan: LaserScan):
 
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return None, 0
+        def angle_to_index(angle):
+            i = int((angle - scan.angle_min) / scan.angle_increment)
+            return max(0, min(i, len(scan.ranges) - 1))
 
-        c = max(contours, key=cv2.contourArea)
-        area = int(cv2.contourArea(c))
-        if area < 200:  # too small
-            return None, area
+        # Secteur frontal ±10°
+        a0 = math.radians(-10)
+        a1 = math.radians(+10)
 
-        M = cv2.moments(c)
-        if M["m00"] < 1e-5:
-            return None, area
-        cx = int(M["m10"] / M["m00"])
-        cy = int(M["m01"] / M["m00"])
-        return (cx, cy), area
+        i0 = angle_to_index(a0)
+        i1 = angle_to_index(a1)
+        if i0 > i1:
+            i0, i1 = i1, i0
 
-    def on_image(self, msg: Image):
-        # Time delta
-        now = self.get_clock().now()
-        dt = (now - self.prev_time).nanoseconds * 1e-9
-        if dt <= 0:
-            dt = 1e-3
-        self.prev_time = now
+        vals = []
+        for r in scan.ranges[i0:i1 + 1]:
+            if math.isfinite(r) and scan.range_min <= r <= scan.range_max:
+                vals.append(r)
 
-        # Convert
-        try:
-            bgr = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-        except Exception as e:
-            self.get_logger().warn(f"cv_bridge error: {e}")
+        # Distance frontale minimale utilisée pour la sécurité
+        self.lidar_front = min(vals) if vals else scan.range_max
+
+    # =====================================================
+    # CALLBACK CAMÉRA DEPTH
+    # Découpage de l’image en trois zones horizontales
+    # =====================================================
+    def depth_callback(self, msg: Image):
+
+        depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+        h, w = depth.shape
+        third = w // 3
+
+        left   = depth[:, :third]
+        center = depth[:, third:2 * third]
+        right  = depth[:, 2 * third:]
+
+        # Utilisation de la médiane pour réduire l’impact du bruit
+        def dist(zone):
+            z = zone[np.isfinite(zone)]
+            return float(np.median(z)) if z.size else float('inf')
+
+        self.depth_left   = dist(left)
+        self.depth_center = dist(center)
+        self.depth_right  = dist(right)
+
+        # Déclenchement de la logique de navigation
+        self.navigate()
+
+    # =====================================================
+    # LOGIQUE DE NAVIGATION
+    # =====================================================
+    def navigate(self):
+
+        # Sécurité : attendre d’avoir des données valides
+        if self.depth_center is None:
             return
 
-        h, w = bgr.shape[:2]
+        # ---------- DÉTECTION D’UN VIRAGE SERRÉ ----------
+        if self.depth_center < self.sharp_turn_enter_dist and not self.in_sharp_turn:
+            self.in_sharp_turn = True
 
-        # ROI
-        y0 = int(h * self.get_parameter('roi_y_start_ratio').value)
-        y1 = int(h * self.get_parameter('roi_y_end_ratio').value)
-        roi = bgr[y0:y1, :, :]
+            # La direction du virage est choisie selon l’espace disponible
+            self.sharp_turn_dir = -1.0 if self.depth_left > self.depth_right else +1.0
 
-        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        if self.in_sharp_turn and self.depth_center > self.sharp_turn_exit_dist:
+            self.in_sharp_turn = False
+            self.sharp_turn_dir = 0.0
 
-        use_two = bool(self.get_parameter('use_two_lines').value)
-
-        # Masks
-        g_low = self.get_parameter('green_hsv_low').value
-        g_high = self.get_parameter('green_hsv_high').value
-        green_mask = self._mask_color(hsv, g_low, g_high)
-
-        r1_low = self.get_parameter('red1_hsv_low').value
-        r1_high = self.get_parameter('red1_hsv_high').value
-        r2_low = self.get_parameter('red2_hsv_low').value
-        r2_high = self.get_parameter('red2_hsv_high').value
-        red_mask = self._mask_color(hsv, r1_low, r1_high) | self._mask_color(hsv, r2_low, r2_high)
-
-        # Find centers
-        green_center, green_area = self._largest_blob_center(green_mask)
-        red_center, red_area = self._largest_blob_center(red_mask)
-
-        # Compute desired center x (lane center)
-        target_x = w // 2
-        lane_x = None
-
-        if use_two:
-            # corridor center = midpoint between red & green when both visible
-            if green_center and red_center:
-                lane_x = int((green_center[0] + red_center[0]) / 2)
-            elif green_center:
-                # only green visible -> keep a safe offset to stay between
-                lane_x = int(green_center[0] - 0.20 * w)
-            elif red_center:
-                lane_x = int(red_center[0] + 0.20 * w)
+        # ---------- CALCUL DU BRAQUAGE ----------
+        if self.in_sharp_turn:
+            # En virage serré, on impose un braquage constant et franc
+            steering = self.sharp_turn_dir * self.max_steer
         else:
-            # follow green only
-            if green_center:
-                lane_x = green_center[0]
-            elif red_center:
-                lane_x = red_center[0]
+            # Anticipation latérale basée sur la différence gauche/droite
+            side_diff = self.depth_left - self.depth_right
+            steering = -self.k_side * side_diff
 
-        # If nothing detected -> slow down + keep previous steering
-        if lane_x is None:
-            steer = float(np.clip(self.prev_err * -1.0, -self.get_parameter('max_steer').value, self.get_parameter('max_steer').value))
-            speed = float(self.get_parameter('min_speed').value)
-            self._publish_cmd(speed, steer)
-            self._debug_show(roi, green_mask, red_mask, None, target_x, lane_x, speed, steer)
-            return
+            # Obstacle détecté devant : décision plus agressive
+            if self.depth_center < self.depth_threshold:
+                if self.depth_left > self.depth_right:
+                    steering = -self.steering_gain
+                else:
+                    steering = +self.steering_gain
+                self.turn_bias = steering
 
-        # Error: positive if lane is to the right
-        err = (lane_x - target_x) / float(w)  # normalized [-0.5..0.5]
-        # PID
-        kp = float(self.get_parameter('kp').value)
-        kd = float(self.get_parameter('kd').value)
-        ki = float(self.get_parameter('ki').value)
+            # En cas d’ambiguïté, on conserve le dernier biais connu
+            if abs(steering) < 0.05:
+                steering = self.turn_bias
 
-        derr = (err - self.prev_err) / dt
-        self.err_i += err * dt
-        self.prev_err = err
+            # Atténuation progressive du biais
+            self.turn_bias *= self.bias_decay
 
-        steer = -(kp * err + kd * derr + ki * self.err_i)  # negative -> steer towards lane center
-        max_steer = float(self.get_parameter('max_steer').value)
-        steer = float(np.clip(steer, -max_steer, max_steer))
+        # Saturation du braquage
+        steering = max(-self.max_steer, min(self.max_steer, steering))
 
-        # Speed: slow down when steering a lot
-        base_speed = float(self.get_parameter('base_speed').value)
-        min_speed = float(self.get_parameter('min_speed').value)
-        slowdown_gain = float(self.get_parameter('slowdown_gain').value)
-        speed = base_speed * (1.0 - slowdown_gain * min(abs(steer) / max_steer, 1.0))
-        speed = float(np.clip(speed, min_speed, base_speed))
+        # Lissage temporel
+        steering = (
+            self.steer_smooth * self.prev_steering
+            + (1.0 - self.steer_smooth) * steering
+        )
+        self.prev_steering = steering
 
-        self._publish_cmd(speed, steer)
-        self._debug_show(roi, green_mask, red_mask, (lane_x, int((y1-y0)*0.6)), target_x, lane_x, speed, steer)
+        # ---------- GESTION DE LA VITESSE ----------
+        if self.in_sharp_turn:
+            speed = self.max_speed * 0.4
+        else:
+            if self.lidar_front < self.lidar_stop_dist:
+                self.lidar_stop_counter += 1
+            else:
+                self.lidar_stop_counter = 0
 
-    def _publish_cmd(self, speed: float, steer: float):
-        msg = AckermannDriveStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.drive.speed = float(speed)
-        msg.drive.steering_angle = float(steer)
-        self.pub.publish(msg)
+            if self.lidar_stop_counter >= self.lidar_stop_count_req:
+                speed = 0.0
+            else:
+                speed = self.max_speed
 
-    def _debug_show(self, roi, green_mask, red_mask, lane_pt, target_x, lane_x, speed, steer):
-        if not bool(self.get_parameter('debug_view').value):
-            return
+            # Ralentissement en virage
+            if abs(steering) > 0.1 and speed > 0.0:
+                speed *= self.turn_slow_factor
 
-        vis = roi.copy()
-        h, w = vis.shape[:2]
+        # ---------- COMMANDE FINALE ----------
+        cmd = AckermannDrive()
+        cmd.speed = speed
+        cmd.steering_angle = steering
+        self.cmd_pub.publish(cmd)
 
-        # Draw target center
-        cv2.line(vis, (target_x, 0), (target_x, h-1), (255, 255, 255), 2)
-
-        # Draw lane point
-        if lane_x is not None:
-            cv2.circle(vis, (lane_x, int(h*0.7)), 8, (0, 255, 255), -1)
-
-        txt = f"speed={speed:.2f} steer={steer:.3f}"
-        cv2.putText(vis, txt, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255), 2)
-
-        # Show masks small
-        g = cv2.cvtColor(green_mask, cv2.COLOR_GRAY2BGR)
-        r = cv2.cvtColor(red_mask, cv2.COLOR_GRAY2BGR)
-        g = cv2.resize(g, (w//3, h//3))
-        r = cv2.resize(r, (w//3, h//3))
-        vis[0:g.shape[0], 0:g.shape[1]] = g
-        vis[0:r.shape[0], g.shape[1]:g.shape[1]+r.shape[1]] = r
-
-        cv2.imshow("lane_follower_debug", vis)
-        cv2.waitKey(1)
-
-
-def main():
-    rclpy.init()
-    node = VisionLaneFollower()
-    try:
+    def main():
+        rclpy.init()
+        node = AutonomousNavigation()
         rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        cv2.destroyAllWindows()
         node.destroy_node()
         rclpy.shutdown()
 
