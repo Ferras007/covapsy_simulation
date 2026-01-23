@@ -23,11 +23,11 @@ class AutonomousNavigation(Node):
 
         # ================== PARAMÈTRES ==================
         # Depth (m)
-        self.depth_threshold = 1.2        # obstacle "devant" caméra
-        self.k_side = 0.15                # anticipation latérale (virage tôt)
+        self.depth_threshold = 1.5       # obstacle "devant" caméra
+        self.k_side = 0.20                # anticipation latérale (virage tôt)
 
         # Steering
-        self.steering_gain = 0.35         # braquage fort quand obstacle devant
+        self.steering_gain = 0.35        # braquage fort quand obstacle devant
         self.steer_smooth = 0.7           # lissage (0..1), plus grand = plus doux
         self.max_steer = 0.45             # limite physique (rad)
 
@@ -37,7 +37,7 @@ class AutonomousNavigation(Node):
 
         # Vitesse
         self.max_speed = 0.30             # vitesse nominale
-        self.turn_slow_factor = 0.7       # ralentir en virage (sans STOP)
+        self.turn_slow_factor = 0.6       # ralentir en virage (sans STOP)
 
         # ================== ÉTAT ==================
         self.depth_left = None
