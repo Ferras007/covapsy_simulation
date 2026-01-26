@@ -32,7 +32,7 @@ class AutonomousNavigation(Node):
         self.max_steer = 0.45             # limite physique (rad)
 
         # LiDAR sécurité
-        self.lidar_stop_dist = 0.35       # STOP si obstacle très proche
+        self.lidar_stop_dist = 0.28       # STOP si obstacle très proche
         self.lidar_stop_count_req = 3     # nb mesures consécutives pour STOP
 
         # Vitesse
@@ -152,7 +152,7 @@ class AutonomousNavigation(Node):
         self.prev_steering = steering
 
         # ---------------- SPEED (LiDAR robuste) ----------------
-        if self.lidar_front < self.lidar_stop_dist:
+        if self.lidar_front < self.lidar_stop_dist and abs(steering) < 0.12:
             self.lidar_stop_counter += 1
         else:
             self.lidar_stop_counter = 0
