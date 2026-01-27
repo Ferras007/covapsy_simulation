@@ -22,3 +22,11 @@ Le comportement est optimisé pour être :
 
 ## 📂 Arborescence (extrait)
 
+```text
+webot_simulation/
+├── obstacle_avoider.py
+├── teleop.py
+├── vision_lane_follower.py
+├── voiture_driver.py
+├── __init__.py
+└── README.md```
