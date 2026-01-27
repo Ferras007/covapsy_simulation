@@ -31,3 +31,25 @@ webot_simulation/
 ├── __init__.py
 └── README.md
 ```
+# Vision Lane Follower
+
+## 📁 Fichier principal
+**`vision_lane_follower.py`**
+
+## ⚙️ Dépendances
+- **ROS 2** ( Jazzy)
+- **Webots**
+- **Python 3**
+- **Packages ROS** : 
+  - `rclpy`
+  - `sensor_msgs`
+  - `ackermann_msgs`
+  - `cv_bridge`
+  - `numpy`
+
+## 🛠️ Compilation du workspace
+Depuis la racine du workspace ROS 2 :
+```bash
+cd ~/covapsy_ws
+colcon build
+source install/setup.bash
