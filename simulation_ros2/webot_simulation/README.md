@@ -1,24 +1,24 @@
-# webot_simulation – Autonomous Navigation (Depth + LiDAR)
+# 🚗 Autonomous Navigation – LiDAR + Depth Camera (ROS 2)
 
-## Overview
-Autonomous navigation for an Ackermann vehicle using:
-- **Depth camera** for local perception (left/center/right distances).
-- **LiDAR** for safety (emergency stop only in straight motion to avoid false positives in turns).
+## 📌 Description
 
-Main node: `vision_lane_follower.py`
+Ce projet implémente une **navigation autonome robuste** basée sur la **fusion d’une caméra depth et d’un LiDAR**, développée et testée sous **ROS 2 avec Webots**.
 
-## Topics
-### Subscribed
-- `/TT02_jaune/rb5_depth/image` (sensor_msgs/Image)
-- `/TT02_jaune/RpLidarA2` (sensor_msgs/LaserScan)
+L’objectif est de permettre à un véhicule autonome :
 
-### Published
-- `/cmd_ackermann` (ackermann_msgs/AckermannDrive)
+- de **suivre un parcours**,
+- d’**anticiper les virages** grâce à la caméra depth,
+- d’**éviter les obstacles** avec le LiDAR,
+- tout en garantissant une **sécurité intelligente** (arrêt d’urgence uniquement en ligne droite).
 
-## Build
-From your ROS 2 workspace:
-```bash
-cd ~/covapsy_ws
-colcon build
-source install/setup.bash
+Le comportement est optimisé pour être :
+
+- fluide,
+- stable,
+- sans oscillations,
+- et capable de **terminer entièrement le circuit**.
+
+---
+
+## 📂 Arborescence (extrait)
 
