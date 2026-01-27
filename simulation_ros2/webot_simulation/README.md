@@ -55,9 +55,38 @@ colcon build
 source install/setup.bash
 ```
 ## ▶️ Lancement de la simulation
-**Lancer Webots** (selon le setup habituel) 
+**Lancer Webots** (selon le setup habituel) apres 
 **Lancer la navigation autonome :**
 ```bash
 ros2 run webot_simulation vision_lane_follower.py
 ```
+## 🧠 Principe de fonctionnement
+
+### 1️⃣ Caméra depth – Anticipation locale
+L'image depth est découpée en trois zones : gauche, centre et droite. Pour chaque zone, on calcule la distance médiane.
+
+**Cela permet :**
+- D'anticiper les virages
+- De commencer à tourner avant d'être face à un mur
+
+### 2️⃣ Commande de direction (steering)
+Le système utilise deux niveaux de décision :
+
+**Anticipation douce :**
+
+```python
+steering = -k_side * (depth_left - depth_right)
+```
+#### Décision forte en présence d’obstacle
+
+Lorsque la distance mesurée devant le véhicule devient inférieure à un seuil prédéfini, une décision plus agressive est appliquée afin d’éviter une collision :
+
+```python
+if depth_center < depth_threshold:
+    if depth_left > depth_right:
+        steering = -steering_gain
+    else:
+        steering = +steering_gain
+```
+
 
