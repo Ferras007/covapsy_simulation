@@ -53,3 +53,11 @@ Depuis la racine du workspace ROS 2 :
 cd ~/covapsy_ws
 colcon build
 source install/setup.bash
+```
+## ▶️ Lancement de la simulation
+**Lancer Webots** (selon le setup habituel) 
+**Lancer la navigation autonome :**
+```bash
+ros2 run webot_simulation vision_lane_follower.py
+```
+
