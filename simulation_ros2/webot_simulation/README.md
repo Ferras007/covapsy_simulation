@@ -88,5 +88,33 @@ if depth_center < depth_threshold:
     else:
         steering = +steering_gain
 ```
+Un **lissage exponentiel** est ensuite appliqué sur la commande de direction afin d’éviter les oscillations et les changements brusques :
+
+```python
+steering = steer_smooth * prev_steering + (1.0 - steer_smooth) * steering
+```
+
+### 3️⃣ LiDAR – Sécurité intelligente
+
+Le LiDAR est utilisé comme capteur de sécurité afin de prévenir les collisions frontales.  
+Il surveille une **zone frontale étroite** (±10°) devant le véhicule.
+
+L’arrêt d’urgence est déclenché **uniquement si** :
+- un obstacle est détecté à très courte distance,
+- **et** le véhicule est quasi en ligne droite (pas en virage).
+
+```python
+if lidar_front < lidar_stop_dist and abs(steering) < 0.12:
+    lidar_stop_counter += 1
+else:
+    lidar_stop_counter = 0
+```
+Après plusieurs détections consécutives, la vitesse est annulée :
+
+```python
+if lidar_stop_counter >= lidar_stop_count_req:
+    speed = 0.0
+```
+Cette logique permet d’éviter les faux arrêts causés par les murs latéraux dans les virages.
 
 
