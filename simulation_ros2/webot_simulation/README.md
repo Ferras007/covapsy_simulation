@@ -117,4 +117,57 @@ if lidar_stop_counter >= lidar_stop_count_req:
 ```
 Cette logique permet d’éviter les faux arrêts causés par les murs latéraux dans les virages.
 
+### 4️⃣ Gestion de la vitesse
+
+La vitesse du véhicule est gérée de manière adaptative :
+- vitesse nominale en ligne droite,
+- ralentissement automatique en virage,
+- arrêt uniquement en cas de danger réel.
+```python
+speed = max_speed
+
+if abs(steering) > 0.1 and speed > 0.0:
+    speed *= turn_slow_factor
+
+```
+Ce mécanisme garantit un bon compromis entre rapidité et stabilité.
+
+### 5️⃣ Publication de la commande
+
+Les commandes finales de vitesse et de direction sont envoyées au véhicule via un message AckermannDrive :
+```python
+cmd = AckermannDrive()
+cmd.speed = speed
+cmd.steering_angle = steering
+cmd_pub.publish(cmd)
+
+```
+### 🔧 Paramètres principaux
+```python
+depth_threshold = 1.5
+k_side = 0.20
+
+steering_gain = 0.35
+steer_smooth = 0.7
+max_steer = 0.45
+
+lidar_stop_dist = 0.28
+lidar_stop_count_req = 3
+
+max_speed = 0.30
+turn_slow_factor = 0.6
+
+```
+Ces paramètres ont été ajustés afin d’obtenir un bon compromis entre réactivité, stabilité et sécurité.
+
+### 🏁 Résultats
+
+- Navigation fluide et stable
+- Virages propres sans oscillations
+- Aucun faux arrêt d’urgence
+- Parcours complété intégralement
+
+
+
+
 
