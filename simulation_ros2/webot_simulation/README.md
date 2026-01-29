@@ -1,6 +1,6 @@
-# 🚗 Autonomous Navigation – LiDAR + Depth Camera (ROS 2)
+#  Autonomous Navigation – LiDAR + Depth Camera (ROS 2)
 
-## 📌 Description
+##  Description
 
 Ce projet implémente une **navigation autonome robuste** basée sur la **fusion d’une caméra depth et d’un LiDAR**, développée et testée sous **ROS 2 avec Webots**.
 
@@ -20,7 +20,7 @@ Le comportement est optimisé pour être :
 
 ---
 
-## 📂 Arborescence (extrait)
+##  Arborescence (extrait)
 
 ```text
 webot_simulation/
@@ -33,10 +33,10 @@ webot_simulation/
 ```
 # Vision Lane Follower
 
-## 📁 Fichier principal
+##  Fichier principal
 **`vision_lane_follower.py`**
 
-## ⚙️ Dépendances
+##  Dépendances
 - **ROS 2** ( Jazzy)
 - **Webots**
 - **Python 3**
@@ -47,29 +47,29 @@ webot_simulation/
   - `cv_bridge`
   - `numpy`
 
-## 🛠️ Compilation du workspace
+##  Compilation du workspace
 Depuis la racine du workspace ROS 2 :
 ```bash
 cd ~/covapsy_ws
 colcon build
 source install/setup.bash
 ```
-## ▶️ Lancement de la simulation
+##  Lancement de la simulation
 **Lancer Webots** (selon le setup habituel) apres 
 **Lancer la navigation autonome :**
 ```bash
 ros2 run webot_simulation vision_lane_follower.py
 ```
-## 🧠 Principe de fonctionnement
+##  Principe de fonctionnement
 
-### 1️⃣ Caméra depth – Anticipation locale
+### 1️ Caméra depth – Anticipation locale
 L'image depth est découpée en trois zones : gauche, centre et droite. Pour chaque zone, on calcule la distance médiane.
 
 **Cela permet :**
 - D'anticiper les virages
 - De commencer à tourner avant d'être face à un mur
 
-### 2️⃣ Commande de direction (steering)
+### 2️ Commande de direction (steering)
 Le système utilise deux niveaux de décision :
 
 **Anticipation douce :**
@@ -94,7 +94,7 @@ Un **lissage exponentiel** est ensuite appliqué sur la commande de direction af
 steering = steer_smooth * prev_steering + (1.0 - steer_smooth) * steering
 ```
 
-### 3️⃣ LiDAR – Sécurité intelligente
+### 3️ LiDAR – Sécurité intelligente
 
 Le LiDAR est utilisé comme capteur de sécurité afin de prévenir les collisions frontales.  
 Il surveille une **zone frontale étroite** (±10°) devant le véhicule.
@@ -117,7 +117,7 @@ if lidar_stop_counter >= lidar_stop_count_req:
 ```
 Cette logique permet d’éviter les faux arrêts causés par les murs latéraux dans les virages.
 
-### 4️⃣ Gestion de la vitesse
+### 4️ Gestion de la vitesse
 
 La vitesse du véhicule est gérée de manière adaptative :
 - vitesse nominale en ligne droite,
@@ -132,7 +132,7 @@ if abs(steering) > 0.1 and speed > 0.0:
 ```
 Ce mécanisme garantit un bon compromis entre rapidité et stabilité.
 
-### 5️⃣ Publication de la commande
+### 5️ Publication de la commande
 
 Les commandes finales de vitesse et de direction sont envoyées au véhicule via un message AckermannDrive :
 ```python
@@ -142,7 +142,7 @@ cmd.steering_angle = steering
 cmd_pub.publish(cmd)
 
 ```
-### 🔧 Paramètres principaux
+###  Paramètres principaux
 ```python
 depth_threshold = 1.5
 k_side = 0.20
@@ -160,7 +160,7 @@ turn_slow_factor = 0.6
 ```
 Ces paramètres ont été ajustés afin d’obtenir un bon compromis entre réactivité, stabilité et sécurité.
 
-### 🏁 Résultats
+###  Résultats
 
 - Navigation fluide et stable
 - Virages propres sans oscillations
