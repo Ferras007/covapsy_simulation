@@ -2,25 +2,25 @@
 
 ##  Description
 
-Ce projet implémente une **navigation autonome robuste** basée sur la **fusion d’une caméra depth et d’un LiDAR**, développée et testée sous **ROS 2 avec Webots**.
+This project implements a **robust autonomous navigation** system based on the **fusion of a depth camera and a LiDAR**, developed and tested under **ROS 2 with Webots**.
 
-L’objectif est de permettre à un véhicule autonome :
+The goal is to enable an autonomous vehicle to:
 
-- de **suivre un parcours**,
-- d’**anticiper les virages** grâce à la caméra depth,
-- d’**éviter les obstacles** avec le LiDAR,
-- tout en garantissant une **sécurité intelligente** (arrêt d’urgence uniquement en ligne droite).
+- **follow a track**,
+- **anticipate turns** thanks to the depth camera,
+- **avoid obstacles** with the LiDAR,
+- while ensuring **smart safety** (emergency stop only on straight paths).
 
-Le comportement est optimisé pour être :
+The behavior is optimized to be:
 
-- fluide,
+- smooth,
 - stable,
-- sans oscillations,
-- et capable de **terminer entièrement le circuit**.
+- without oscillations,
+- and able to **complete the entire circuit**.
 
 ---
 
-##  Arborescence (extrait)
+##  Directory Structure (excerpt)
 
 ```text
 webot_simulation/
@@ -30,56 +30,57 @@ webot_simulation/
 ├── voiture_driver.py
 ├── __init__.py
 └── README.md
+
 ```
 # Vision Lane Follower
 
-##  Fichier principal
+##  Main file
 **`vision_lane_follower.py`**
 
-##  Dépendances
+##  Dependencies
 - **ROS 2** ( Jazzy)
 - **Webots**
 - **Python 3**
-- **Packages ROS** : 
+- **ROS packages** : 
   - `rclpy`
   - `sensor_msgs`
   - `ackermann_msgs`
   - `cv_bridge`
   - `numpy`
 
-##  Compilation du workspace
-Depuis la racine du workspace ROS 2 :
+##  Workspace build
+From the root of the ROS 2 Workspace :
 ```bash
 cd ~/covapsy_ws
 colcon build
 source install/setup.bash
 ```
-##  Lancement de la simulation
-**Lancer Webots** (selon le setup habituel) apres 
-**Lancer la navigation autonome :**
+##  Launching the simulation
+**Launch Webots** (according to the usual setup) after 
+**Launch autonomous navigation :**
 ```bash
 ros2 run webot_simulation vision_lane_follower.py
 ```
-##  Principe de fonctionnement
+##  Operating principle
 
-### 1️ Caméra depth – Anticipation locale
-L'image depth est découpée en trois zones : gauche, centre et droite. Pour chaque zone, on calcule la distance médiane.
+### 1️ Depth camera – Local anticipation
+The depth image is divided into three zones: left, center, and right. For each zone, the median distance is computed.
 
-**Cela permet :**
-- D'anticiper les virages
-- De commencer à tourner avant d'être face à un mur
+**This allows to :**
+- anticipate turns
+- start turning before facing a wall
 
-### 2️ Commande de direction (steering)
-Le système utilise deux niveaux de décision :
+### 2️ Steering control
+The system uses two decision levels :
 
-**Anticipation douce :**
+**Soft anticipation :**
 
 ```python
 steering = -k_side * (depth_left - depth_right)
 ```
-#### Décision forte en présence d’obstacle
+#### Strong decision in the presence of an obstacle
 
-Lorsque la distance mesurée devant le véhicule devient inférieure à un seuil prédéfini, une décision plus agressive est appliquée afin d’éviter une collision :
+When the distance measured in front of the vehicle becomes lower than a predefined threshold, a more aggressive decision is applied to avoid a collision :
 
 ```python
 if depth_center < depth_threshold:
@@ -88,20 +89,21 @@ if depth_center < depth_threshold:
     else:
         steering = +steering_gain
 ```
-Un **lissage exponentiel** est ensuite appliqué sur la commande de direction afin d’éviter les oscillations et les changements brusques :
+An **exponential smoothing** is then applied to the steering command to avoid oscillations and abrupt changes :
 
 ```python
 steering = steer_smooth * prev_steering + (1.0 - steer_smooth) * steering
 ```
 
-### 3️ LiDAR – Sécurité intelligente
+### 3️ LiDAR – Smart safety
 
-Le LiDAR est utilisé comme capteur de sécurité afin de prévenir les collisions frontales.  
-Il surveille une **zone frontale étroite** (±10°) devant le véhicule.
+The LiDAR is used as a safety sensor to prevent frontal collisions.
+  
+It monitors a **narrow frontal zone** (±10°) in front of the vehicle.
 
-L’arrêt d’urgence est déclenché **uniquement si** :
-- un obstacle est détecté à très courte distance,
-- **et** le véhicule est quasi en ligne droite (pas en virage).
+The emergency stop is triggered **only if** :
+- an obstacle is detected at a very short distance,
+- **and** the vehicle is almost going straight (not turning).
 
 ```python
 if lidar_front < lidar_stop_dist and abs(steering) < 0.12:
@@ -109,20 +111,20 @@ if lidar_front < lidar_stop_dist and abs(steering) < 0.12:
 else:
     lidar_stop_counter = 0
 ```
-Après plusieurs détections consécutives, la vitesse est annulée :
+After several consecutive detections, the speed is canceled :
 
 ```python
 if lidar_stop_counter >= lidar_stop_count_req:
     speed = 0.0
 ```
-Cette logique permet d’éviter les faux arrêts causés par les murs latéraux dans les virages.
+This logic helps avoid false stops caused by side walls in turns.
 
-### 4️ Gestion de la vitesse
+### 4️ Speed management
 
-La vitesse du véhicule est gérée de manière adaptative :
-- vitesse nominale en ligne droite,
-- ralentissement automatique en virage,
-- arrêt uniquement en cas de danger réel.
+The vehicle speed is managed adaptively :
+- nominal speed on straight lines,
+- automatic slowdown in turns,
+- stop only in case of real danger.
 ```python
 speed = max_speed
 
@@ -130,11 +132,11 @@ if abs(steering) > 0.1 and speed > 0.0:
     speed *= turn_slow_factor
 
 ```
-Ce mécanisme garantit un bon compromis entre rapidité et stabilité.
+This mechanism ensures a good compromise between speed and stability.
 
-### 5️ Publication de la commande
+### 5️ Command publishing
 
-Les commandes finales de vitesse et de direction sont envoyées au véhicule via un message AckermannDrive :
+Final speed and steering commands are sent to the vehicle using an AckermannDrive message:
 ```python
 cmd = AckermannDrive()
 cmd.speed = speed
@@ -142,7 +144,7 @@ cmd.steering_angle = steering
 cmd_pub.publish(cmd)
 
 ```
-###  Paramètres principaux
+###  Main parameters
 ```python
 depth_threshold = 1.5
 k_side = 0.20
@@ -158,14 +160,14 @@ max_speed = 0.30
 turn_slow_factor = 0.6
 
 ```
-Ces paramètres ont été ajustés afin d’obtenir un bon compromis entre réactivité, stabilité et sécurité.
+These parameters were tuned to achieve a good compromise between responsiveness, stability, and safety.
 
-###  Résultats
+###  Results
 
-- Navigation fluide et stable
-- Virages propres sans oscillations
-- Aucun faux arrêt d’urgence
-- Parcours complété intégralement
+- Smooth and stable navigation
+- Clean turns without oscillations
+- No false emergency stops
+- Circuit completed entirely
 
 
 
