@@ -153,3 +153,5 @@ To view the video stream:
 ```bash
 ros2 run rqt_image_view rqt_image_view
 ```
+## For a detailed explanation of the code and ROS 2 nodes, please refer to the package README:
+`simulation_ros2/webot_simulation/README.md`
