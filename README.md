@@ -1,88 +1,85 @@
 # COVAPSy Simulation Environment — Sorbonne Université 2025
 
-Ce dépôt contient l’environnement de **simulation du cours COVAPSy** (Conception et Validation de Systèmes Cyber-Physiques), proposé à **Sorbonne Université en 2025**.
-
-Il fournit une plateforme complète basée sur **Webots** et **ROS 2**, permettant de **concevoir, tester et visualiser des algorithmes de navigation autonome** pour un véhicule de type voiture.
-
----
-
-##  Objectif du projet
-
-L’objectif principal de ce projet est de mettre en place un **simulateur réaliste de voiture autonome**, proche des conditions rencontrées sur un véhicule réel.
-
-Dans un premier temps, le travail a consisté à :
-
-- Mettre en place une **architecture Webots + ROS 2 fonctionnelle**
-- Modéliser un véhicule de type **TT02** avec une cinématique **Ackermann**
-- Intégrer plusieurs **capteurs réalistes**
-- Publier correctement les **topics ROS 2**, l’**odométrie** et les **transformations TF**
-- Préparer le simulateur pour :
-  - la navigation autonome
-  - l’évitement d’obstacles
-  - le SLAM (cartographie)
-  - la perception par caméra
-
-Ce simulateur sert de **base expérimentale** pour les TPs et projets du cours COVAPSy.
+This repository contains the **simulation environment for the COVAPSy course** (Design and Validation of Cyber-Physical Systems), offered at **Sorbonne Université in 2025**.
+It provides a complete platform based on **Webots** and **ROS 2**, allowing to **design, test and visualize autonomous navigation algorithms** for a car-type vehicle.
 
 ---
 
-##  Description du simulateur
+##  Project Objective
 
-Le véhicule simulé est une **voiture de type TT02**, intégrée dans Webots avec :
+The main objective of this project is to set up a **realistic autonomous car simulator**, close to the conditions encountered on a real vehicle.
 
-- une dynamique réaliste
-- une direction Ackermann
-- une interface directe avec ROS 2 via un **contrôleur Webots personnalisé**
+Initially, the work consisted of:
+- Setting up a **functional Webots + ROS 2 architecture**
+- Modeling a **TT02** type vehicle with **Ackermann** kinematics
+- Integrating several **realistic sensors**
+- Properly publishing **ROS 2 topics**, **odometry** and **TF transformations**
+- Preparing the simulator for:
+  - autonomous navigation
+  - obstacle avoidance
+  - SLAM (mapping)
+  - camera-based perception
 
-Chaque véhicule est **namespacé** (ex. `/TT02_jaune/...`), ce qui permet une extension future vers des scénarios multi-robots.
+This simulator serves as an **experimental base** for the practical sessions and projects of the COVAPSy course.
 
 ---
 
-##  Capteurs intégrés
+##  Simulator Description
+
+The simulated vehicle is a **TT02 type car**, integrated in Webots with:
+- realistic dynamics
+- Ackermann steering
+- direct interface with ROS 2 via a **custom Webots controller**
+
+Each vehicle is **namespaced** (e.g., `/TT02_jaune/...`), which allows future extension to multi-robot scenarios.
+
+---
+
+##  Integrated Sensors
 
 ###  LiDAR
 - **RpLidar A2**
-- Utilisé pour l’évitement d’obstacles et le SLAM
-- Topics :
+- Used for obstacle avoidance and SLAM
+- Topics:
   - `/TT02_jaune/RpLidarA2`
   - `/TT02_jaune/RpLidarA2/point_cloud`
 
-###  Caméra RGB-D (type Qualcomm RB5)
-Une caméra inspirée du **kit Qualcomm RB5** a été intégrée sur le toit du véhicule.
+###  RGB-D Camera (Qualcomm RB5 type)
 
-- **Caméra RGB**
+A camera inspired by the **Qualcomm RB5 kit** has been integrated on the vehicle's roof.
+
+- **RGB Camera**
   - `/TT02_jaune/rb5_rgb/image_color`
   - `/TT02_jaune/rb5_rgb/camera_info`
 
-- **Caméra Depth**
+- **Depth Camera**
   - `/TT02_jaune/rb5_depth/image`
   - `/TT02_jaune/rb5_depth/point_cloud`
 
-Cette caméra permet de travailler sur :
-- la perception visuelle
-- le suivi de ligne
-- la navigation basée vision
-- des approches futures en deep learning
+This camera enables work on:
+- visual perception
+- line following
+- vision-based navigation
+- future deep learning approaches
 
-###  Autres capteurs
+###  Other Sensors
 - IMU / Gyroscope
-- Capteur sonar arrière
+- Rear sonar sensor
 
 ---
 
-##  Prérequis système
+##  System Prerequisites
 
-###  Système d’exploitation
-- **Ubuntu 24.04 LTS (recommandé)**
+###  Operating System
+- **Ubuntu 24.04 LTS (recommended)**
 
 ###  ROS 2
-- **ROS 2 Jazzy **
+- **ROS 2 Jazzy**
 
-Installation officielle :  
+Official installation:  
 https://docs.ros.org/en/jazzy/Installation.html
 
-## Installer les outils nécessaires :
-
+## Install necessary tools:
 ```bash
 sudo apt update
 sudo apt install -y \
@@ -91,20 +88,20 @@ sudo apt install -y \
   python3-vcstool \
   git
 ```
----
 
+---
 
 ##  Installation
 
-### 1. Initialisation de rosdep
-À faire une seule fois avant la compilation :
-
+### 1. Initialize rosdep
+To be done only once before compilation:
 ```bash
 sudo rosdep init
 rosdep update
 ```
-### 2. Installer les dépendances ROS 2 supplémentaires
-Assurez-vous d'être sous ROS 2 Jazzy.
+
+### 2. Install additional ROS 2 dependencies
+Make sure you are running ROS 2 Jazzy.
 ```bash
 sudo apt install -y \
   ros-jazzy-slam-toolbox \
@@ -114,46 +111,45 @@ sudo apt install -y \
   ros-jazzy-rqt-image-view \
   ros-jazzy-tf2-tools
 ```
-### 3. Création du workspace et clonage
-```bash
-# Création du dossier src
-mkdir -p ~/covapsy_ws/src
 
-# Accéder au dossier et cloner le dépôt
+### 3. Create workspace and clone
+```bash
+# Create src directory
+mkdir -p ~/covapsy_ws/src
+# Navigate to directory and clone repository
 cd ~/covapsy_ws/src
 git clone https://github.com/Ferras007/covapsy_simulation.git
 ```
-### 4. Installation des dépendances du projet
+
+### 4. Install project dependencies
 ```bash
 cd ~/covapsy_ws
 rosdep install --from-paths src --ignore-src -r -y
 ```
 
-### 5.Compilation
+### 5. Compilation
 ```bash
 cd ~/covapsy_ws
 colcon build
-
-# Sourcer l'environnement
+# Source the environment
 source install/setup.bash
 ```
-⚠️ Le sourcing (`source install/setup.bash`) doit être refait dans chaque nouveau terminal.
 
-##  Lancer le simulateur
+⚠️ Sourcing (`source install/setup.bash`) must be redone in each new terminal.
 
-Ouvrez un terminal et exécutez :
+##  Launch the Simulator
+
+Open a terminal and execute:
 ```bash
 source /opt/ros/jazzy/setup.bash
 source ~/covapsy_ws/install/setup.bash
-
 ros2 launch webot_simulation simulation.launch.py
 ```
-## Visualisation:
-### Caméra RGB (RQT):
-Pour voir le flux vidéo :
+
+## Visualization:
+
+### RGB Camera (RQT):
+To view the video stream:
 ```bash
 ros2 run rqt_image_view rqt_image_view
 ```
-
-
-
