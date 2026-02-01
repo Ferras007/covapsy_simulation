@@ -79,6 +79,16 @@ This camera enables work on:
 Official installation:  
 https://docs.ros.org/en/jazzy/Installation.html
 
+### Webots
+This project requires **Webots**.
+
+- Official installation guide (Linux): https://cyberbotics.com/doc/guide/installing-webots
+- Verify installation:
+```bash
+webots --version
+```
+---
+
 ## Install necessary tools:
 ```bash
 sudo apt update
@@ -146,6 +156,24 @@ source ~/covapsy_ws/install/setup.bash
 ros2 launch webot_simulation simulation.launch.py
 ```
 
+
+---
+
+
+## Verification
+
+Check that the main ROS 2 interfaces are running:
+
+```bash
+# List relevant topics
+ros2 topic list | grep TT02_jaune
+
+# Check LiDAR data
+ros2 topic echo --once /TT02_jaune/RpLidarA2
+
+# Check RGB camera topic
+ros2 topic list | grep rb5_rgb
+```
 ## Visualization:
 
 ### RGB Camera (RQT):
